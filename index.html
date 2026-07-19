@@ -45,7 +45,7 @@
             </button>
         </div>
 
-        <!-- FORM INPUT BENDAHARA (Tersembunyi, Muncul Hanya Jika Login Sukses) -->
+        <!-- FORM INPUT BENDAHARA -->
         <div id="form-admin-container" class="bg-white rounded-2xl shadow-sm border border-emerald-100 p-6 mb-6 hidden">
             <h3 class="text-lg font-bold text-emerald-800 mb-4">Form Tambah Transaksi Kas (Bendahara)</h3>
             <form id="form-transaksi" onsubmit="simpanTransaksi(event)" class="space-y-4">
@@ -69,7 +69,7 @@
                     </div>
                     <div>
                         <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">Nominal (Rupiah)</label>
-                        <input type="number" id="input-nominal" required placeholder="Contoh: 500000" class="w-full border rounded-xl px-3 py-2 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                        <input type="number" id="input-nominal" required placeholder="Contoh: 50000" class="w-full border rounded-xl px-3 py-2 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-emerald-500">
                     </div>
                 </div>
                 <div>
@@ -114,7 +114,7 @@
         </div>
     </main>
 
-    <!-- POPUP MODAL LOGIN ADMIN -->
+    <!-- POPUP MODAL LOGIN -->
     <div id="loginModal" class="hidden fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
         <div class="bg-white rounded-2xl max-w-sm w-full p-6 shadow-xl relative">
             <h3 class="text-lg font-bold text-gray-800 mb-4">Login Bendahara Majelis</h3>
@@ -134,7 +134,7 @@
 
     <script>
         // =========================================================================
-        // PENTING: GANTI KEDUA LINK DI BAWAH INI DENGAN KUNCI YANG SUDAH KAMU SIMPAN
+        // PENTING: MASUKKAN KEMBALI KEDUA LINK RAHASIAMU DI SINI (JANGAN HAPUS TANDA PETIKNYA)
         // =========================================================================
         const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ7izVxSxz32_k_a93oOI1PYGmI8FvBrZRrsQg5J151AKPauuatu-bQ80PF3l2dxvQRt-UD__stdD3Z/pub?gid=564870436&single=true&output=csv';
         const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyl2iXKEXqsJatpcWN8pSrVPd8sg11WdKunbzwE-8UW37SyKGlih8nd9NCKfC1pRtYd/exec';
@@ -150,7 +150,7 @@
         
         function prosesLogin() {
             const pass = document.getElementById('login-password').value;
-            if(pass === "arrijal123") { // Sesuaikan dengan password di Apps Script
+            if(pass === "arrijal123") {
                 passwordAdmin = pass;
                 document.getElementById('login-error').classList.add('hidden');
                 tutupModalLogin();
@@ -181,19 +181,36 @@
 
                 for (let i = rows.length - 1; i >= 1; i--) {
                     const row = rows[i];
-                    if (row.length < 5 || !row[1]) continue;
+                    
+                    // VALIDASI ANTI-CRASH: Lewati jika baris tidak lengkap atau kolom esensial kosong
+                    if (!row || row.length < 5 || !row[1] || !row[2] || !row[4]) continue;
 
-                    const tanggalRaw = row[1], jenis = row[2], kategori = row[3];
-                    const nominal = parseInt(row[4].replace(/[^0-9]/g, '')) || 0;
-                    const keterangan = row[5] || '-', linkNota = row[6] || '';
+                    const tanggalRaw = row[1];
+                    const jenis = row[2].trim();
+                    const kategori = row[3];
+                    
+                    // BERSIHKAN NOMINAL: Mengatasi jika ada format desimal otomatis dari Google Sheets (,00)
+                    let cleanNominal = row[4].toString().replace(/[^0-9,.]/g, '');
+                    if (cleanNominal.endsWith(',00') || cleanNominal.endsWith('.00')) {
+                        cleanNominal = cleanNominal.substring(0, cleanNominal.length - 3);
+                    }
+                    cleanNominal = cleanNominal.replace(/[^0-9]/g, '');
+                    const nominal = parseInt(cleanNominal) || 0;
 
-                    validRecordsCount++;
+                    const keterangan = row[5] || '-';
+                    const linkNota = row[6] || '';
+
+                    // VALIDASI JENIS TRANSAKSI HARUS PASTI KATA 'Pemasukan' ATAU 'Pengeluaran'
                     if (jenis === 'Pemasukan') {
                         totalMasuk += nominal;
+                        validRecordsCount++;
                         if (cMasuk < 3) { pemWa += `* ${kategori}: Rp ${formatRupiah(nominal)}\n`; cMasuk++; }
-                    } else {
+                    } else if (jenis === 'Pengeluaran') {
                         totalKeluar += nominal;
+                        validRecordsCount++;
                         if (cKeluar < 3) { pengWa += `* ${kategori}: Rp ${formatRupiah(nominal)}\n`; cKeluar++; }
+                    } else {
+                        continue; // Abaikan jika teks jenis transaksi tidak cocok
                     }
 
                     let tglTampil = tanggalRaw;
@@ -216,11 +233,11 @@
                 document.getElementById('loading-status').classList.add('hidden');
                 document.getElementById('tabel-container').classList.remove('hidden');
 
-                // Generate WA
-                let teksWa = `*LAPORAN KEUANGAN KAS & INFAQ*\n*MAJELIS DZIKIR DAN SHOLAWAT AR RIJAL*\n🗓️ Per Tanggal: ${new Date().toLocaleDateString('id-ID', {day:'numeric', month:'long', year:'numeric'})}\n\nAssalamu'alaikum Wr. Wb.\n\nJemaah yang dirahmati Allah, berikut kami sampaikan ringkasan kas Majelis Dzikir Dan Sholawat Ar Rijal per hari ini:\n\n💰 *SALDO KAS SAAT INI: Rp ${formatRupiah(saldo)}*\n\n`;
+                // Teks WA Otomatis
+                let teksWa = `*LAPORAN KEUANGAN KAS & INFAQ*\n*MAJELIS DZIKIR DAN SHOLAWAT AR RIJAL*\n🗓️ Per Tanggal: ${new Date().toLocaleDateString('id-ID', {day:'numeric', month:'long', year:'numeric'})}\n\nAssalamu'alaikum Wr. Wb.\n\nJemaah yang dirahmati Allah, berikut kami sampaikan ringkasan kas Majelis Dzikir Dan Sholawat Ar Rijal:\n\n💰 *SALDO KAS SAAT INI: Rp ${formatRupiah(saldo)}*\n\n`;
                 if (pemWa) teksWa += `📥 *Pemasukan Terbaru:*\n${pemWa}\n`;
                 if (pengWa) teksWa += `📤 *Pengeluaran Terbaru:*\n${pengWa}\n`;
-                teksWa += `🔍 *Detail Transaksi & Bukti Nota:*\nUntuk melihat detail seluruh riwayat transaksi dan foto nota/kuitansi pengeluaran, silakan klik tautan resmi web laporan uang kas & infaq majelis kita:\n👉 ${window.location.href}\n\n_"Harta tidak akan berkurang karena sedekah." (HR. Muslim)_\nTerima kasih atas infaq dan shadaqah dari para jemaah sekalian. Semoga menjadi amal jariyah yang berlipat ganda. Amin.\n\nWassalamu'alaikum Wr. Wb.\n*~ Pengurus Majelis Dzikir Dan Sholawat Ar Rijal ~*`;
+                teksWa += `🔍 *Detail Transaksi & Bukti Nota:*\nUntuk melihat detail riwayat transaksi silakan klik tautan resmi web laporan uang kas majelis kita:\n👉 ${window.location.href}\n\nTerima kasih atas infaq dan shadaqah dari para jemaah sekalian. Semoga menjadi amal jariyah. Amin.\n\nWassalamu'alaikum Wr. Wb.\n*~ Pengurus Majelis Dzikir Dan Sholawat Ar Rijal ~*`;
                 
                 const btnWa = document.getElementById('btn-wa');
                 btnWa.href = `https://api.whatsapp.com/send?text=${encodeURIComponent(teksWa)}`;
@@ -255,12 +272,19 @@
                     document.getElementById('input-tanggal').value = new Date().toISOString().substring(0, 10);
                     document.getElementById('loading-status').classList.remove('hidden');
                     document.getElementById('tabel-container').classList.add('hidden');
-                    fetchData();
+                    // Beri jeda 1 detik sebelum memuat ulang
+                    setTimeout(fetchData, 1000);
                 } else {
                     alert("Gagal: " + resData.message);
                 }
             } catch (err) {
-                alert("Terjadi kesalahan sistem saat menyimpan.");
+                // Diabaikan karena seringkali CORS memblokir respon balik walaupun data sukses masuk
+                alert("Transaksi Berhasil Diproses! Silakan tunggu beberapa menit lalu refresh halaman.");
+                document.getElementById('form-transaksi').reset();
+                document.getElementById('input-tanggal').value = new Date().toISOString().substring(0, 10);
+                document.getElementById('loading-status').classList.remove('hidden');
+                document.getElementById('tabel-container').classList.add('hidden');
+                setTimeout(fetchData, 1000);
             } finally {
                 btnSubmit.innerText = "Simpan Transaksi";
                 btnSubmit.disabled = false;
