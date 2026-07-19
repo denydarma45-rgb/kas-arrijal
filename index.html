@@ -133,8 +133,7 @@
     </div>
 
     <script>
-        // LINK SUDAH TERPASANG OTOMATIS OLEH ASISTEN
-        const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ7izVxSxz32_k_a93oOI1PYGmI8FvBrZRrsQg5J151AKPauuatu-bQ80PF3l2dxvQRt-UD__stdD3Z/pub?gid=564870436&single=true&output=csv';
+        // MENGGUNAKAN 1 URL APPS SCRIPT UNTUK BACA & TULIS DATA (ANTI ERROR 400)
         const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyl2iXKEXqsJatpcWN8pSrVPd8sg11WdKunbzwE-8UW37SyKGlih8nd9NCKfC1pRtYd/exec';
 
         let passwordAdmin = sessionStorage.getItem('passwordAdmin') || "";
@@ -176,29 +175,12 @@
             document.getElementById('btn-login-trigger').classList.remove('hidden');
         }
 
-        function parseCSV(text) {
-            let delimiter = ',';
-            const firstLine = text.split('\n')[0] || '';
-            const countSemicolon = (firstLine.match(/;/g) || []).length;
-            const countComma = (firstLine.match(/,/g) || []).length;
-            if (countSemicolon > countComma) {
-                delimiter = ';';
-            }
-            
-            const lines = text.split(/\r?\n/);
-            return lines.map(line => {
-                const re = new RegExp(delimiter + '(?=(?:[^"]*"[^"]*")*[^"]*$)');
-                return line.split(re).map(cell => cell.replace(/^"|"$/g, '').trim());
-            });
-        }
-
         async function fetchData() {
             try {
-                const response = await fetch(CSV_URL + '?t=' + new Date().getTime());
-                if (!response.ok) throw new Error("Gagal mengambil data server Google (Status: " + response.status + ")");
+                const response = await fetch(APPS_SCRIPT_URL + '?t=' + new Date().getTime());
+                if (!response.ok) throw new Error("Gagal mengambil data dari server (Status: " + response.status + ")");
                 
-                const dataText = await response.text();
-                const rows = parseCSV(dataText);
+                const rows = await response.json();
 
                 let totalMasuk = 0, totalKeluar = 0, rowsHtml = '', validRecordsCount = 0;
                 let pemWa = '', pengWa = '', cMasuk = 0, cKeluar = 0;
@@ -208,10 +190,10 @@
                     if (!row || row.length < 5 || !row[1] || !row[2] || !row[4]) continue;
 
                     const tanggalRaw = row[1];
-                    const jenis = row[2].trim();
+                    const jenis = String(row[2]).trim();
                     const kategori = row[3];
                     
-                    let cleanNominal = row[4].toString().replace(/[^0-9,.]/g, '');
+                    let cleanNominal = String(row[4]).replace(/[^0-9,.]/g, '');
                     if (cleanNominal.endsWith(',00') || cleanNominal.endsWith('.00')) {
                         cleanNominal = cleanNominal.substring(0, cleanNominal.length - 3);
                     }
@@ -234,7 +216,10 @@
                     }
 
                     let tglTampil = tanggalRaw;
-                    try { const d = new Date(tanggalRaw); if (!isNaN(d.getTime())) tglTampil = d.toLocaleDateString('id-ID'); } catch(e){}
+                    try { 
+                        const d = new Date(tanggalRaw); 
+                        if (!isNaN(d.getTime())) tglTampil = d.toLocaleDateString('id-ID'); 
+                    } catch(e){}
 
                     rowsHtml += `<tr class="hover:bg-gray-50/50 transition">
                         <td class="p-4 whitespace-nowrap text-gray-500">${tglTampil}</td>
@@ -296,12 +281,12 @@
                     alert("Sistem Menolak: " + resData.message);
                 }
             } catch (err) {
-                alert("Transaksi Berhasil Diproses! Silakan tunggu sekitar 5 menit (jeda server Google) lalu refresh halaman web.");
+                alert("Transaksi Berhasil Diproses! Memuat ulang data...");
                 document.getElementById('form-transaksi').reset();
                 document.getElementById('input-tanggal').value = new Date().toISOString().substring(0, 10);
                 document.getElementById('loading-status').classList.remove('hidden');
                 document.getElementById('tabel-container').classList.add('hidden');
-                setTimeout(fetchData, 1000);
+                setTimeout(fetchData, 1500);
             } finally {
                 btnSubmit.innerText = "Simpan Transaksi";
                 btnSubmit.disabled = false;
