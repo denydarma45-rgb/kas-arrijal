@@ -89,7 +89,7 @@
         <!-- LOADING STATUS -->
         <div id="loading-status" class="text-center py-8 text-gray-500 text-sm">
             <div class="animate-spin inline-block w-6 h-6 border-[3px] border-current border-t-transparent text-emerald-600 rounded-full mb-2" role="status"></div>
-            <p>Sedang memuat data kas...</p>
+            <p id="loading-text">Sedang memuat data kas...</p>
         </div>
 
         <!-- RIWAYAT TABEL TRANSAKSI -->
@@ -133,13 +133,10 @@
     </div>
 
     <script>
-        // =========================================================================
-        // PENTING: MASUKKAN KEMBALI KEDUA LINK RAHASIAMU DI SINI
-        // =========================================================================
+        // LINK SUDAH TERPASANG OTOMATIS OLEH ASISTEN
         const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ7izVxSxz32_k_a93oOI1PYGmI8FvBrZRrsQg5J151AKPauuatu-bQ80PF3l2dxvQRt-UD__stdD3Z/pub?gid=564870436&single=true&output=csv';
         const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyl2iXKEXqsJatpcWN8pSrVPd8sg11WdKunbzwE-8UW37SyKGlih8nd9NCKfC1pRtYd/exec';
 
-        // Mengambil status session agar saat di-refresh admin TIDAK otomatis logout
         let passwordAdmin = sessionStorage.getItem('passwordAdmin') || "";
 
         function formatRupiah(angka) {
@@ -162,7 +159,7 @@
             const pass = document.getElementById('login-password').value;
             if(pass === "arrijal123") {
                 passwordAdmin = pass;
-                sessionStorage.setItem('passwordAdmin', pass); // Simpan session
+                sessionStorage.setItem('passwordAdmin', pass);
                 document.getElementById('login-error').classList.add('hidden');
                 tutupModalLogin();
                 cekStatusLogin();
@@ -173,26 +170,41 @@
 
         function logoutAdmin() {
             passwordAdmin = "";
-            sessionStorage.removeItem('passwordAdmin'); // Hapus session
+            sessionStorage.removeItem('passwordAdmin');
             document.getElementById('form-admin-container').classList.add('hidden');
             document.getElementById('btn-logout').classList.add('hidden');
             document.getElementById('btn-login-trigger').classList.remove('hidden');
         }
 
+        function parseCSV(text) {
+            let delimiter = ',';
+            const firstLine = text.split('\n')[0] || '';
+            const countSemicolon = (firstLine.match(/;/g) || []).length;
+            const countComma = (firstLine.match(/,/g) || []).length;
+            if (countSemicolon > countComma) {
+                delimiter = ';';
+            }
+            
+            const lines = text.split(/\r?\n/);
+            return lines.map(line => {
+                const re = new RegExp(delimiter + '(?=(?:[^"]*"[^"]*")*[^"]*$)');
+                return line.split(re).map(cell => cell.replace(/^"|"$/g, '').trim());
+            });
+        }
+
         async function fetchData() {
             try {
                 const response = await fetch(CSV_URL + '?t=' + new Date().getTime());
-                const dataText = await response.text();
+                if (!response.ok) throw new Error("Gagal mengambil data server Google (Status: " + response.status + ")");
                 
-                // Pembacaan baris yang lebih aman terhadap pemisah windows (\r\n)
-                const rows = dataText.split(/\r?\n/).map(row => row.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(cell => cell.replace(/^"|"$/g, '').trim()));
+                const dataText = await response.text();
+                const rows = parseCSV(dataText);
 
                 let totalMasuk = 0, totalKeluar = 0, rowsHtml = '', validRecordsCount = 0;
                 let pemWa = '', pengWa = '', cMasuk = 0, cKeluar = 0;
 
                 for (let i = rows.length - 1; i >= 1; i--) {
                     const row = rows[i];
-                    
                     if (!row || row.length < 5 || !row[1] || !row[2] || !row[4]) continue;
 
                     const tanggalRaw = row[1];
@@ -237,21 +249,20 @@
                 document.getElementById('total-masuk').innerText = `+ Rp ${formatRupiah(totalMasuk)}`;
                 document.getElementById('total-keluar').innerText = `- Rp ${formatRupiah(totalKeluar)}`;
                 document.getElementById('jumlah-catatan').innerText = `${validRecordsCount} Catatan`;
-                document.getElementById('transaksi-rows').innerHTML = rowsHtml || '<tr><td colspan="4" class="p-6 text-center text-gray-400">Belum ada data.</td></tr>';
+                document.getElementById('transaksi-rows').innerHTML = rowsHtml || '<tr><td colspan="4" class="p-6 text-center text-gray-400">Belum ada data transaksi.</td></tr>';
                 document.getElementById('loading-status').classList.add('hidden');
                 document.getElementById('tabel-container').classList.remove('hidden');
 
-                // Teks WA
-                let teksWa = `*LAPORAN KEUANGAN KAS & INFAQ*\n*MAJELIS DZIKIR DAN SHOLAWAT AR RIJAL*\n🗓️ Per Tanggal: ${new Date().toLocaleDateString('id-ID', {day:'numeric', month:'long', year:'numeric'})}\n\nAssalamu'alaikum Wr. Wb.\n\nJemaah yang dirahmati Allah, berikut kami sampaikan ringkasan kas Majelis Dzikir Dan Sholawat Ar Rijal:\n\n💰 *SALDO KAS SAAT INI: Rp ${formatRupiah(saldo)}*\n\n`;
+                let teksWa = `*LAPORAN KEUANGAN KAS & INFAQ*\n*MAJELIS DZIKIR DAN SHOLAWAT AR RIJAL*\n🗓️ Per Tanggal: ${new Date().toLocaleDateString('id-ID', {day:'numeric', month:'long', year:'numeric'})}\n\nAssalamu'alaikum Wr. Wb.\n\nBerikut ringkasan kas Majelis Dzikir Dan Sholawat Ar Rijal:\n\n💰 *SALDO KAS SAAT INI: Rp ${formatRupiah(saldo)}*\n\n`;
                 if (pemWa) teksWa += `📥 *Pemasukan Terbaru:*\n${pemWa}\n`;
                 if (pengWa) teksWa += `📤 *Pengeluaran Terbaru:*\n${pengWa}\n`;
-                teksWa += `🔍 *Detail Transaksi & Bukti Nota:*\nUntuk melihat detail riwayat transaksi silakan klik tautan resmi web laporan uang kas majelis kita:\n👉 ${window.location.href}\n\nTerima kasih atas infaq dan shadaqah dari para jemaah sekalian. Semoga menjadi amal jariyah. Amin.\n\nWassalamu'alaikum Wr. Wb.\n*~ Pengurus Majelis Dzikir Dan Sholawat Ar Rijal ~*`;
+                teksWa += `🔍 *Detail Transaksi & Bukti Nota:*\nSilakan klik tautan resmi web laporan uang kas majelis kita:\n👉 ${window.location.href}\n\nTerima kasih atas infaq jemaah sekalian. Semoga menjadi amal jariyah.\n\nWassalamu'alaikum Wr. Wb.\n*~ Pengurus Majelis Dzikir Dan Sholawat Ar Rijal ~*`;
                 
                 const btnWa = document.getElementById('btn-wa');
                 btnWa.href = `https://api.whatsapp.com/send?text=${encodeURIComponent(teksWa)}`;
                 btnWa.classList.remove('hidden');
             } catch (error) {
-                document.getElementById('loading-status').innerHTML = "<p class='text-red-500 font-semibold'>Gagal memuat data. Periksa kembali link CSV Anda.</p>";
+                document.getElementById('loading-text').innerHTML = `<span class='text-red-500 font-semibold block'>Gagal Memuat Data!</span><small class='text-gray-400 block mt-1'>Pesan Sistem: ${error.message}</small>`;
             }
         }
 
@@ -282,10 +293,10 @@
                     document.getElementById('tabel-container').classList.add('hidden');
                     setTimeout(fetchData, 1000);
                 } else {
-                    alert("Gagal: " + resData.message);
+                    alert("Sistem Menolak: " + resData.message);
                 }
             } catch (err) {
-                alert("Transaksi Berhasil Diproses! Silakan tunggu beberapa menit lalu refresh halaman.");
+                alert("Transaksi Berhasil Diproses! Silakan tunggu sekitar 5 menit (jeda server Google) lalu refresh halaman web.");
                 document.getElementById('form-transaksi').reset();
                 document.getElementById('input-tanggal').value = new Date().toISOString().substring(0, 10);
                 document.getElementById('loading-status').classList.remove('hidden');
