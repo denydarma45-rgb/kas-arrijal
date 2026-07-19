@@ -134,12 +134,13 @@
 
     <script>
         // =========================================================================
-        // PENTING: MASUKKAN KEMBALI KEDUA LINK RAHASIAMU DI SINI (JANGAN HAPUS TANDA PETIKNYA)
+        // PENTING: MASUKKAN KEMBALI KEDUA LINK RAHASIAMU DI SINI
         // =========================================================================
         const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ7izVxSxz32_k_a93oOI1PYGmI8FvBrZRrsQg5J151AKPauuatu-bQ80PF3l2dxvQRt-UD__stdD3Z/pub?gid=564870436&single=true&output=csv';
         const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyl2iXKEXqsJatpcWN8pSrVPd8sg11WdKunbzwE-8UW37SyKGlih8nd9NCKfC1pRtYd/exec';
 
-        let passwordAdmin = "";
+        // Mengambil status session agar saat di-refresh admin TIDAK otomatis logout
+        let passwordAdmin = sessionStorage.getItem('passwordAdmin') || "";
 
         function formatRupiah(angka) {
             return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(angka).replace("IDR", "").trim();
@@ -148,16 +149,23 @@
         function bukaModalLogin() { document.getElementById('loginModal').classList.remove('hidden'); }
         function tutupModalLogin() { document.getElementById('loginModal').classList.add('hidden'); }
         
-        function prosesLogin() {
-            const pass = document.getElementById('login-password').value;
-            if(pass === "arrijal123") {
-                passwordAdmin = pass;
-                document.getElementById('login-error').classList.add('hidden');
-                tutupModalLogin();
+        function cekStatusLogin() {
+            if (passwordAdmin === "arrijal123") {
                 document.getElementById('form-admin-container').classList.remove('hidden');
                 document.getElementById('btn-logout').classList.remove('hidden');
                 document.getElementById('btn-login-trigger').classList.add('hidden');
                 document.getElementById('input-tanggal').value = new Date().toISOString().substring(0, 10);
+            }
+        }
+
+        function prosesLogin() {
+            const pass = document.getElementById('login-password').value;
+            if(pass === "arrijal123") {
+                passwordAdmin = pass;
+                sessionStorage.setItem('passwordAdmin', pass); // Simpan session
+                document.getElementById('login-error').classList.add('hidden');
+                tutupModalLogin();
+                cekStatusLogin();
             } else {
                 document.getElementById('login-error').classList.remove('hidden');
             }
@@ -165,6 +173,7 @@
 
         function logoutAdmin() {
             passwordAdmin = "";
+            sessionStorage.removeItem('passwordAdmin'); // Hapus session
             document.getElementById('form-admin-container').classList.add('hidden');
             document.getElementById('btn-logout').classList.add('hidden');
             document.getElementById('btn-login-trigger').classList.remove('hidden');
@@ -174,7 +183,9 @@
             try {
                 const response = await fetch(CSV_URL + '?t=' + new Date().getTime());
                 const dataText = await response.text();
-                const rows = dataText.split('\n').map(row => row.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(cell => cell.replace(/^"|"$/g, '').trim()));
+                
+                // Pembacaan baris yang lebih aman terhadap pemisah windows (\r\n)
+                const rows = dataText.split(/\r?\n/).map(row => row.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(cell => cell.replace(/^"|"$/g, '').trim()));
 
                 let totalMasuk = 0, totalKeluar = 0, rowsHtml = '', validRecordsCount = 0;
                 let pemWa = '', pengWa = '', cMasuk = 0, cKeluar = 0;
@@ -182,14 +193,12 @@
                 for (let i = rows.length - 1; i >= 1; i--) {
                     const row = rows[i];
                     
-                    // VALIDASI ANTI-CRASH: Lewati jika baris tidak lengkap atau kolom esensial kosong
                     if (!row || row.length < 5 || !row[1] || !row[2] || !row[4]) continue;
 
                     const tanggalRaw = row[1];
                     const jenis = row[2].trim();
                     const kategori = row[3];
                     
-                    // BERSIHKAN NOMINAL: Mengatasi jika ada format desimal otomatis dari Google Sheets (,00)
                     let cleanNominal = row[4].toString().replace(/[^0-9,.]/g, '');
                     if (cleanNominal.endsWith(',00') || cleanNominal.endsWith('.00')) {
                         cleanNominal = cleanNominal.substring(0, cleanNominal.length - 3);
@@ -200,7 +209,6 @@
                     const keterangan = row[5] || '-';
                     const linkNota = row[6] || '';
 
-                    // VALIDASI JENIS TRANSAKSI HARUS PASTI KATA 'Pemasukan' ATAU 'Pengeluaran'
                     if (jenis === 'Pemasukan') {
                         totalMasuk += nominal;
                         validRecordsCount++;
@@ -210,7 +218,7 @@
                         validRecordsCount++;
                         if (cKeluar < 3) { pengWa += `* ${kategori}: Rp ${formatRupiah(nominal)}\n`; cKeluar++; }
                     } else {
-                        continue; // Abaikan jika teks jenis transaksi tidak cocok
+                        continue;
                     }
 
                     let tglTampil = tanggalRaw;
@@ -233,7 +241,7 @@
                 document.getElementById('loading-status').classList.add('hidden');
                 document.getElementById('tabel-container').classList.remove('hidden');
 
-                // Teks WA Otomatis
+                // Teks WA
                 let teksWa = `*LAPORAN KEUANGAN KAS & INFAQ*\n*MAJELIS DZIKIR DAN SHOLAWAT AR RIJAL*\n🗓️ Per Tanggal: ${new Date().toLocaleDateString('id-ID', {day:'numeric', month:'long', year:'numeric'})}\n\nAssalamu'alaikum Wr. Wb.\n\nJemaah yang dirahmati Allah, berikut kami sampaikan ringkasan kas Majelis Dzikir Dan Sholawat Ar Rijal:\n\n💰 *SALDO KAS SAAT INI: Rp ${formatRupiah(saldo)}*\n\n`;
                 if (pemWa) teksWa += `📥 *Pemasukan Terbaru:*\n${pemWa}\n`;
                 if (pengWa) teksWa += `📤 *Pengeluaran Terbaru:*\n${pengWa}\n`;
@@ -272,13 +280,11 @@
                     document.getElementById('input-tanggal').value = new Date().toISOString().substring(0, 10);
                     document.getElementById('loading-status').classList.remove('hidden');
                     document.getElementById('tabel-container').classList.add('hidden');
-                    // Beri jeda 1 detik sebelum memuat ulang
                     setTimeout(fetchData, 1000);
                 } else {
                     alert("Gagal: " + resData.message);
                 }
             } catch (err) {
-                // Diabaikan karena seringkali CORS memblokir respon balik walaupun data sukses masuk
                 alert("Transaksi Berhasil Diproses! Silakan tunggu beberapa menit lalu refresh halaman.");
                 document.getElementById('form-transaksi').reset();
                 document.getElementById('input-tanggal').value = new Date().toISOString().substring(0, 10);
@@ -291,7 +297,10 @@
             }
         }
 
-        window.onload = fetchData;
+        window.onload = function() {
+            cekStatusLogin();
+            fetchData();
+        };
     </script>
 </body>
 </html>
