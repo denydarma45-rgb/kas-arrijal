@@ -120,6 +120,12 @@
                     <tbody id="transaksi-rows" class="divide-y divide-gray-100 text-sm"></tbody>
                 </table>
             </div>
+            <!-- KONTROL PAGINASI -->
+            <div id="pagination-container" class="px-6 py-4 bg-gray-50 border-t border-gray-100 flex justify-between items-center hidden">
+                <button id="btn-prev" onclick="ubahHalaman(-1)" class="px-3 py-1.5 bg-white border border-gray-200 text-gray-600 rounded-lg text-xs font-semibold hover:bg-gray-100 transition disabled:opacity-50 disabled:cursor-not-allowed">← Sebelumnya</button>
+                <span id="page-info" class="text-xs text-gray-500 font-medium">Halaman 1 dari 1</span>
+                <button id="btn-next" onclick="ubahHalaman(1)" class="px-3 py-1.5 bg-white border border-gray-200 text-gray-600 rounded-lg text-xs font-semibold hover:bg-gray-100 transition disabled:opacity-50 disabled:cursor-not-allowed">Selanjutnya →</button>
+            </div>
         </div>
     </main>
 
@@ -145,6 +151,9 @@
         const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyl2iXKEXqsJatpcWN8pSrVPd8sg11WdKunbzwE-8UW37SyKGlih8nd9NCKfC1pRtYd/exec';
 
         let passwordAdmin = sessionStorage.getItem('passwordAdmin') || "";
+        let allTransactions = [];
+        let currentPage = 1;
+        const itemsPerPage = 15;
 
         function formatRupiah(angka) {
             return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(angka).replace("IDR", "").trim();
@@ -190,9 +199,12 @@
                 
                 const rows = await response.json();
 
-                let totalMasuk = 0, totalKeluar = 0, rowsHtml = '', validRecordsCount = 0;
+                let totalMasuk = 0, totalKeluar = 0, validRecordsCount = 0;
                 let pemWa = '', pengWa = '', cMasuk = 0, cKeluar = 0;
                 let rekapBulan = {};
+                allTransactions = [];
+                currentPage = 1;
+
                 const namaBulanList = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
 
                 for (let i = rows.length - 1; i >= 1; i--) {
@@ -250,12 +262,15 @@
                         if (!isNaN(d.getTime())) tglTampil = d.toLocaleDateString('id-ID'); 
                     } catch(e){}
 
-                    rowsHtml += `<tr class="hover:bg-gray-50/50 transition">
-                        <td class="p-4 whitespace-nowrap text-gray-500">${tglTampil}</td>
-                        <td class="p-4"><span class="font-semibold block text-gray-800">${kategori}</span><small class="text-gray-400 block max-w-xs md:max-w-md break-words">${keterangan}</small></td>
-                        <td class="p-4 text-right font-bold whitespace-nowrap ${jenis === 'Pemasukan' ? 'text-blue-600' : 'text-red-500'}">${jenis === 'Pemasukan' ? '+' : '-'} Rp ${formatRupiah(nominal)}</td>
-                        <td class="p-4 text-center whitespace-nowrap">${linkNota ? `<a href="${linkNota}" target="_blank" class="text-emerald-600 hover:text-emerald-800 text-xs font-semibold underline">Lihat Bukti</a>` : '<span class="text-gray-300">-</span>'}</td>
-                    </tr>`;
+                    // Push ke array untuk paginasi
+                    allTransactions.push({
+                        tanggal: tglTampil,
+                        jenis: jenis,
+                        kategori: kategori,
+                        keterangan: keterangan,
+                        nominal: nominal,
+                        linkNota: linkNota
+                    });
                 }
 
                 // Render Rekap Bulanan HTML
@@ -298,7 +313,10 @@
                 document.getElementById('total-masuk').innerText = `+ Rp ${formatRupiah(totalMasuk)}`;
                 document.getElementById('total-keluar').innerText = `- Rp ${formatRupiah(totalKeluar)}`;
                 document.getElementById('jumlah-catatan').innerText = `${validRecordsCount} Catatan`;
-                document.getElementById('transaksi-rows').innerHTML = rowsHtml || '<tr><td colspan="4" class="p-6 text-center text-gray-400">Belum ada data transaksi.</td></tr>';
+
+                // Render tabel & kontrol halaman
+                renderTable();
+
                 document.getElementById('loading-status').classList.add('hidden');
                 document.getElementById('tabel-container').classList.remove('hidden');
 
@@ -313,6 +331,50 @@
             } catch (error) {
                 document.getElementById('loading-text').innerHTML = `<span class='text-red-500 font-semibold block'>Gagal Memuat Data!</span><small class='text-gray-400 block mt-1'>Pesan Sistem: ${error.message}</small>`;
             }
+        }
+
+        function renderTable() {
+            const startIndex = (currentPage - 1) * itemsPerPage;
+            const endIndex = startIndex + itemsPerPage;
+            const paginatedItems = allTransactions.slice(startIndex, endIndex);
+
+            let rowsHtml = '';
+            paginatedItems.forEach(item => {
+                rowsHtml += `<tr class="hover:bg-gray-50/50 transition">
+                    <td class="p-4 whitespace-nowrap text-gray-500">${item.tanggal}</td>
+                    <td class="p-4"><span class="font-semibold block text-gray-800">${item.kategori}</span><small class="text-gray-400 block max-w-xs md:max-w-md break-words">${item.keterangan}</small></td>
+                    <td class="p-4 text-right font-bold whitespace-nowrap ${item.jenis === 'Pemasukan' ? 'text-blue-600' : 'text-red-500'}">${item.jenis === 'Pemasukan' ? '+' : '-'} Rp ${formatRupiah(item.nominal)}</td>
+                    <td class="p-4 text-center whitespace-nowrap">${item.linkNota ? `<a href="${item.linkNota}" target="_blank" class="text-emerald-600 hover:text-emerald-800 text-xs font-semibold underline">Lihat Bukti</a>` : '<span class="text-gray-300">-</span>'}</td>
+                </tr>`;
+            });
+
+            document.getElementById('transaksi-rows').innerHTML = rowsHtml || '<tr><td colspan="4" class="p-6 text-center text-gray-400">Belum ada data transaksi.</td></tr>';
+            renderPaginationControls();
+        }
+
+        function renderPaginationControls() {
+            const totalPages = Math.ceil(allTransactions.length / itemsPerPage);
+            const paginationContainer = document.getElementById('pagination-container');
+            
+            if (totalPages > 1) {
+                paginationContainer.classList.remove('hidden');
+                document.getElementById('page-info').innerText = `Halaman ${currentPage} dari ${totalPages}`;
+                document.getElementById('btn-prev').disabled = (currentPage === 1);
+                document.getElementById('btn-next').disabled = (currentPage === totalPages);
+            } else {
+                paginationContainer.classList.add('hidden');
+            }
+        }
+
+        function ubahHalaman(direction) {
+            const totalPages = Math.ceil(allTransactions.length / itemsPerPage);
+            currentPage += direction;
+            if (currentPage < 1) currentPage = 1;
+            if (currentPage > totalPages) currentPage = totalPages;
+            
+            renderTable();
+            // Scroll otomatis kembali ke atas tabel agar nyaman dibaca
+            document.getElementById('tabel-container').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         }
 
         async function simpanTransaksi(e) {
