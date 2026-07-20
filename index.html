@@ -210,16 +210,18 @@
                     const keterangan = row[5] || '-';
                     const linkNota = row[6] || '';
 
-                    // Rekap Bulanan Grouping
+                    // Safe Rekap Bulanan Grouping
                     let bulanKey = "Lainnya";
                     let bulanLabel = "Lainnya";
-                    let d = new Date(tanggalRaw);
-                    if (!isNaN(d.getTime())) {
-                        const thn = d.getFullYear();
-                        const bln = d.getMonth();
-                        bulanKey = `${thn}-${String(bln + 1).padStart(2, '0')}`;
-                        bulanLabel = `${namaBulanList[bln]} ${thn}`;
-                    }
+                    try {
+                        let d = new Date(tanggalRaw);
+                        if (!isNaN(d.getTime())) {
+                            const thn = d.getFullYear();
+                            const bln = d.getMonth();
+                            bulanKey = `${thn}-${String(bln + 1).padStart(2, '0')}`;
+                            bulanLabel = `${namaBulanList[bln]} ${thn}`;
+                        }
+                    } catch(e) {}
 
                     if (!rekapBulan[bulanKey]) {
                         rekapBulan[bulanKey] = { label: bulanLabel, masuk: 0, keluar: 0 };
@@ -241,6 +243,7 @@
 
                     let tglTampil = tanggalRaw;
                     try { 
+                        let d = new Date(tanggalRaw);
                         if (!isNaN(d.getTime())) tglTampil = d.toLocaleDateString('id-ID'); 
                     } catch(e){}
 
