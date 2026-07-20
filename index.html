@@ -5,6 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Kas - Majelis Dzikir Dan Sholawat Ar Rijal</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @media print {
+            body { background: white !important; color: black !important; }
+            header, #rekap-bulanan-container, #btn-wa, #btn-login-trigger, #form-admin-container, #pagination-container, .no-print {
+                display: none !important;
+            }
+            #tabel-container { border: none !important; box-shadow: none !important; }
+        }
+    </style>
 </head>
 <body class="bg-gray-50 font-sans antialiased text-gray-800">
 
@@ -68,11 +77,17 @@
             </div>
         </div>
 
-        <!-- TOMBOL AKSI -->
+        <!-- TOMBOL AKSI & EXPORT (KHUSUS BENDAHARA) -->
         <div class="flex flex-wrap gap-3 mb-6 justify-center">
             <a id="btn-wa" href="#" target="_blank" class="bg-green-600 hover:bg-green-700 text-white font-medium px-4 py-2 rounded-xl inline-flex items-center gap-2 shadow-sm transition hidden">
                 💬 Bagikan Laporan Ke WA
             </a>
+            <button id="btn-export-excel" onclick="exportExcel()" class="bg-blue-600 hover:bg-blue-700 text-white font-medium px-4 py-2 rounded-xl text-sm transition inline-flex items-center gap-2 shadow-sm hidden">
+                📊 Download Excel (CSV)
+            </button>
+            <button id="btn-print-pdf" onclick="window.print()" class="bg-gray-700 hover:bg-gray-800 text-white font-medium px-4 py-2 rounded-xl text-sm transition inline-flex items-center gap-2 shadow-sm hidden">
+                🖨️ Cetak / PDF Laporan
+            </button>
             <button id="btn-login-trigger" onclick="bukaModalLogin()" class="bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-medium px-4 py-2 rounded-xl text-sm transition">
                 Masuk Halaman Bendahara
             </button>
@@ -133,6 +148,9 @@
             <div class="px-6 py-4 bg-gray-50 border-b border-gray-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
                 <h3 class="font-bold text-gray-700">Riwayat Kas & Infaq</h3>
                 <div class="flex flex-wrap items-center gap-2 w-full md:w-auto">
+                    <!-- Search Bar Kata Kunci -->
+                    <input type="text" id="input-search" oninput="filterAndRenderTable()" placeholder="Cari (misal: konsumsi)..." class="border rounded-xl px-3 py-1.5 text-xs bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 w-full sm:w-44">
+                    
                     <!-- Filter Bulan -->
                     <select id="filter-riwayat-bulan" onchange="filterAndRenderTable()" class="border rounded-xl px-3 py-1.5 text-xs bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500">
                         <option value="">Semua Bulan</option>
@@ -207,7 +225,7 @@
         let currentPage = 1;
         const itemsPerPage = 10;
         let isFirstLoad = true;
-        let rekapIndex = 0; // Indeks untuk pasang-pasangan rekap bulanan (2 bulan per view)
+        let rekapIndex = 0;
 
         function formatRupiah(angka) {
             return new Intl.NumberFormat('id-ID').format(angka);
@@ -222,6 +240,8 @@
                 document.getElementById('btn-logout').classList.remove('hidden');
                 document.getElementById('btn-login-trigger').classList.add('hidden');
                 document.getElementById('btn-wa').classList.remove('hidden');
+                document.getElementById('btn-export-excel').classList.remove('hidden');
+                document.getElementById('btn-print-pdf').classList.remove('hidden');
                 document.getElementById('input-tanggal').value = new Date().toISOString().substring(0, 10);
             }
         }
@@ -246,6 +266,8 @@
             document.getElementById('btn-logout').classList.add('hidden');
             document.getElementById('btn-login-trigger').classList.remove('hidden');
             document.getElementById('btn-wa').classList.add('hidden');
+            document.getElementById('btn-export-excel').classList.add('hidden');
+            document.getElementById('btn-print-pdf').classList.add('hidden');
         }
 
         async function fetchData() {
@@ -334,10 +356,7 @@
                     });
                 }
 
-                // Populate Dropdown Tahun
                 populateYearDropdowns();
-
-                // Reset rekap index ke awal (2 bulan terbaru: atas & bawah)
                 rekapIndex = 0;
                 renderRekapBulanan();
 
@@ -346,7 +365,6 @@
                 document.getElementById('total-masuk').innerText = `+ Rp ${formatRupiah(totalMasuk)}`;
                 document.getElementById('total-keluar').innerText = `- Rp ${formatRupiah(totalKeluar)}`;
 
-                // Filter & Render Tabel Riwayat
                 filterAndRenderTable();
 
                 document.getElementById('loading-status').classList.add('hidden');
@@ -405,35 +423,26 @@
             }
 
             const monthsObj = rekapBulanData[selectedYear];
-            const sortedKeys = Object.keys(monthsObj).sort().reverse(); // Terbaru di urutan pertama
+            const sortedKeys = Object.keys(monthsObj).sort().reverse();
 
-            // Validasi batas rekapIndex
             if (rekapIndex < 0) rekapIndex = 0;
             if (rekapIndex >= sortedKeys.length) rekapIndex = Math.max(0, sortedKeys.length - 2);
 
-            // Ambil 2 bulan (satu untuk di atas, satu untuk di bawah)
             const key1 = sortedKeys[rekapIndex];
             const key2 = sortedKeys[rekapIndex + 1];
 
             let rekapHtml = '';
-            
-            // Kartu Atas
             if (key1) {
                 const item1 = monthsObj[key1];
-                const saldo1 = item1.masuk - item1.keluar;
-                rekapHtml += buildCardHtml(item1, selectedYear, saldo1);
+                rekapHtml += buildCardHtml(item1, selectedYear, item1.masuk - item1.keluar);
             }
-
-            // Kartu Bawah
             if (key2) {
                 const item2 = monthsObj[key2];
-                const saldo2 = item2.masuk - item2.keluar;
-                rekapHtml += buildCardHtml(item2, selectedYear, saldo2);
+                rekapHtml += buildCardHtml(item2, selectedYear, item2.masuk - item2.keluar);
             }
 
             container.innerHTML = rekapHtml;
             
-            // Info halaman rekap
             const totalPages = Math.ceil(sortedKeys.length / 2);
             const currentPageNum = Math.floor(rekapIndex / 2) + 1;
             document.getElementById('rekap-page-info').innerText = `Bagian ${currentPageNum} dari ${totalPages}`;
@@ -484,10 +493,12 @@
         function filterAndRenderTable() {
             const filterBulan = document.getElementById('filter-riwayat-bulan').value;
             const filterTahun = document.getElementById('filter-riwayat-tahun').value;
+            const searchQuery = document.getElementById('input-search').value.toLowerCase().trim();
 
             filteredTransactions = allTransactions.filter(item => {
                 let matchBulan = true;
                 let matchTahun = true;
+                let matchSearch = true;
 
                 if (filterBulan !== "") {
                     matchBulan = (item.bulanNum == parseInt(filterBulan));
@@ -495,8 +506,13 @@
                 if (filterTahun !== "") {
                     matchTahun = (item.tahun === filterTahun);
                 }
+                if (searchQuery !== "") {
+                    matchSearch = item.kategori.toLowerCase().includes(searchQuery) || 
+                                  item.keterangan.toLowerCase().includes(searchQuery) ||
+                                  item.tanggal.toLowerCase().includes(searchQuery);
+                }
 
-                return matchBulan && matchTahun;
+                return matchBulan && matchTahun && matchSearch;
             });
 
             currentPage = 1;
@@ -522,7 +538,7 @@
                 </tr>`;
             });
 
-            document.getElementById('transaksi-rows').innerHTML = rowsHtml || '<tr><td colspan="4" class="p-6 text-center text-gray-400">Tidak ada data transaksi yang sesuai filter pada bulan ini.</td></tr>';
+            document.getElementById('transaksi-rows').innerHTML = rowsHtml || '<tr><td colspan="4" class="p-6 text-center text-gray-400">Tidak ada data transaksi yang sesuai.</td></tr>';
             renderPaginationControls();
         }
 
@@ -548,6 +564,33 @@
             
             renderTable();
             document.getElementById('tabel-container').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+
+        function exportExcel() {
+            if (filteredTransactions.length === 0) {
+                alert("Tidak ada data transaksi untuk diexport!");
+                return;
+            }
+
+            let csvContent = "data:text/csv;charset=utf-8,Tanggal,Jenis,Kategori,Keterangan,Nominal\r\n";
+            filteredTransactions.forEach(item => {
+                let row = [
+                    `"${item.tanggal}"`,
+                    `"${item.jenis}"`,
+                    `"${item.kategori}"`,
+                    `"${item.keterangan.replace(/"/g, '""')}"`,
+                    item.nominal
+                ];
+                csvContent += row.join(",") + "\r\n";
+            });
+
+            let encodedUri = encodeURI(csvContent);
+            let link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", `Laporan_Kas_ArRijal_${new Date().toISOString().substring(0,10)}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
         }
 
         async function simpanTransaksi(e) {
