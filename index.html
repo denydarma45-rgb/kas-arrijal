@@ -153,7 +153,7 @@
         let passwordAdmin = sessionStorage.getItem('passwordAdmin') || "";
         let allTransactions = [];
         let currentPage = 1;
-        const itemsPerPage = 15;
+        const itemsPerPage = 10; // Diubah jadi 10 transaksi per halaman
 
         function formatRupiah(angka) {
             return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(angka).replace("IDR", "").trim();
@@ -167,6 +167,7 @@
                 document.getElementById('form-admin-container').classList.remove('hidden');
                 document.getElementById('btn-logout').classList.remove('hidden');
                 document.getElementById('btn-login-trigger').classList.add('hidden');
+                document.getElementById('btn-wa').classList.remove('hidden'); // Tombol WA tampil jika login
                 document.getElementById('input-tanggal').value = new Date().toISOString().substring(0, 10);
             }
         }
@@ -190,6 +191,7 @@
             document.getElementById('form-admin-container').classList.add('hidden');
             document.getElementById('btn-logout').classList.add('hidden');
             document.getElementById('btn-login-trigger').classList.remove('hidden');
+            document.getElementById('btn-wa').classList.add('hidden'); // Tombol WA disembunyikan saat logout
         }
 
         async function fetchData() {
@@ -325,9 +327,7 @@
                 if (pengWa) teksWa += `📤 *Pengeluaran Terbaru:*\n${pengWa}\n`;
                 teksWa += `🔍 *Detail Transaksi & Rekap Bulanan:*\nSilakan klik tautan resmi web laporan kas majelis kita:\n👉 ${window.location.href}\n\nTerima kasih atas infaq jemaah sekalian. Semoga menjadi amal jariyah.\n\nWassalamu'alaikum Wr. Wb.\n*~ Pengurus Majelis Dzikir Dan Sholawat Ar Rijal ~*`;
                 
-                const btnWa = document.getElementById('btn-wa');
-                btnWa.href = `https://api.whatsapp.com/send?text=${encodeURIComponent(teksWa)}`;
-                btnWa.classList.remove('hidden');
+                document.getElementById('btn-wa').href = `https://api.whatsapp.com/send?text=${encodeURIComponent(teksWa)}`;
             } catch (error) {
                 document.getElementById('loading-text').innerHTML = `<span class='text-red-500 font-semibold block'>Gagal Memuat Data!</span><small class='text-gray-400 block mt-1'>Pesan Sistem: ${error.message}</small>`;
             }
@@ -373,7 +373,6 @@
             if (currentPage > totalPages) currentPage = totalPages;
             
             renderTable();
-            // Scroll otomatis kembali ke atas tabel agar nyaman dibaca
             document.getElementById('tabel-container').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         }
 
