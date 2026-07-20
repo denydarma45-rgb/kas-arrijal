@@ -8,20 +8,24 @@
     <style>
         @media print {
             body { background: white !important; color: black !important; }
-            header, #rekap-bulanan-container, #btn-wa, #btn-login-trigger, #form-admin-container, #pagination-container, .no-print {
+            header, main > div:not(#print-report-area), .no-print {
                 display: none !important;
             }
-            #tabel-container { border: none !important; box-shadow: none !important; }
+            #print-report-area {
+                display: block !important;
+                width: 100% !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                box-shadow: none !important;
+            }
         }
     </style>
 </head>
 <body class="bg-gray-50 font-sans antialiased text-gray-800">
 
     <!-- HEADER MAJELIS -->
-    <header class="bg-emerald-700 text-white py-6 px-4 shadow-md text-center flex flex-col items-center justify-center">
-        <!-- LOGO MAJELIS -->
+    <header class="bg-emerald-700 text-white py-6 px-4 shadow-md text-center flex flex-col items-center justify-center no-print">
         <img src="https://i.postimg.cc/cHQN77zv/logo-arrijal.png" alt="Logo Majelis" class="w-20 h-20 md:w-24 md:h-24 object-contain mb-3 rounded-full shadow-md bg-white p-1">
-        
         <h1 class="text-xl md:text-2xl font-bold tracking-wide mt-2">MAJELIS DZIKIR DAN SHOLAWAT AR RIJAL</h1>
         <p class="text-emerald-100 text-xs md:text-sm mt-1">Sistem Transparansi Laporan Uang Kas & Infaq</p>
     </header>
@@ -29,7 +33,7 @@
     <main class="max-w-4xl mx-auto px-4 py-6">
         
         <!-- CARD UTAMA SALDO -->
-        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-6 text-center">
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-6 text-center no-print">
             <h2 class="text-gray-500 font-medium text-sm uppercase tracking-wider">Total Saldo Kas Keseluruhan</h2>
             <p id="saldo-akhir" class="text-3xl md:text-4xl font-extrabold text-emerald-600 mt-2">Rp 0</p>
             <div class="grid grid-cols-2 gap-4 mt-6 pt-4 border-t border-gray-100">
@@ -45,7 +49,7 @@
         </div>
 
         <!-- REKAP BULANAN -->
-        <div id="rekap-bulanan-container" class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-6 hidden">
+        <div id="rekap-bulanan-container" class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-6 hidden no-print">
             <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
                 <h3 class="font-bold text-gray-700">Rekap Keuangan Per Bulan</h3>
                 <div class="flex items-center gap-2">
@@ -55,38 +59,31 @@
                 </div>
             </div>
 
-            <!-- CONTAINER UTAMA DENGAN TOMBOL NAVIGASI BESAR DI SAMPING -->
             <div class="relative flex items-center">
-                <!-- Tombol Geser Kiri (Sebelumnya) -->
                 <button onclick="geserRekap(-1)" class="absolute -left-3 md:-left-5 z-10 w-10 h-10 md:w-12 md:h-12 bg-white hover:bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full shadow-lg flex items-center justify-center font-bold text-lg md:text-xl transition transform active:scale-95" title="Bulan Sebelumnya">
                     ‹
                 </button>
-
-                <!-- Daftar 2 Bulan (Vertikal Layout) -->
                 <div id="rekap-bulanan-list" class="w-full space-y-3 px-2 md:px-6"></div>
-
-                <!-- Tombol Geser Kanan (Berikutnya) -->
                 <button onclick="geserRekap(1)" class="absolute -right-3 md:-right-5 z-10 w-10 h-10 md:w-12 md:h-12 bg-white hover:bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full shadow-lg flex items-center justify-center font-bold text-lg md:text-xl transition transform active:scale-95" title="Bulan Berikutnya">
                     ›
                 </button>
             </div>
 
-            <!-- Indeks Halaman Rekap di Bawah -->
             <div class="text-center mt-3">
                 <span id="rekap-page-info" class="text-xs text-gray-400 font-medium">Menampilkan 2 Bulan</span>
             </div>
         </div>
 
         <!-- TOMBOL AKSI & EXPORT (KHUSUS BENDAHARA) -->
-        <div class="flex flex-wrap gap-3 mb-6 justify-center">
+        <div class="flex flex-wrap gap-3 mb-6 justify-center no-print">
             <a id="btn-wa" href="#" target="_blank" class="bg-green-600 hover:bg-green-700 text-white font-medium px-4 py-2 rounded-xl inline-flex items-center gap-2 shadow-sm transition hidden">
                 💬 Bagikan Laporan Ke WA
             </a>
-            <button id="btn-export-excel" onclick="exportExcel()" class="bg-blue-600 hover:bg-blue-700 text-white font-medium px-4 py-2 rounded-xl text-sm transition inline-flex items-center gap-2 shadow-sm hidden">
-                📊 Download Excel (CSV)
+            <button id="btn-export-excel" onclick="exportExcelMutasi()" class="bg-blue-600 hover:bg-blue-700 text-white font-medium px-4 py-2 rounded-xl text-sm transition inline-flex items-center gap-2 shadow-sm hidden">
+                📊 Download Mutasi Excel (CSV)
             </button>
-            <button id="btn-print-pdf" onclick="window.print()" class="bg-gray-700 hover:bg-gray-800 text-white font-medium px-4 py-2 rounded-xl text-sm transition inline-flex items-center gap-2 shadow-sm hidden">
-                🖨️ Cetak / PDF Laporan
+            <button id="btn-print-pdf" onclick="cetakLaporanResmi()" class="bg-gray-700 hover:bg-gray-800 text-white font-medium px-4 py-2 rounded-xl text-sm transition inline-flex items-center gap-2 shadow-sm hidden">
+                🖨️ Cetak / PDF Laporan Resmi
             </button>
             <button id="btn-login-trigger" onclick="bukaModalLogin()" class="bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-medium px-4 py-2 rounded-xl text-sm transition">
                 Masuk Halaman Bendahara
@@ -97,7 +94,7 @@
         </div>
 
         <!-- FORM INPUT BENDAHARA -->
-        <div id="form-admin-container" class="bg-white rounded-2xl shadow-sm border border-emerald-100 p-6 mb-6 hidden">
+        <div id="form-admin-container" class="bg-white rounded-2xl shadow-sm border border-emerald-100 p-6 mb-6 hidden no-print">
             <h3 class="text-lg font-bold text-emerald-800 mb-4">Form Tambah Transaksi Kas (Bendahara)</h3>
             <form id="form-transaksi" onsubmit="simpanTransaksi(event)" class="space-y-4">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -138,13 +135,13 @@
         </div>
 
         <!-- LOADING STATUS -->
-        <div id="loading-status" class="text-center py-8 text-gray-500 text-sm">
+        <div id="loading-status" class="text-center py-8 text-gray-500 text-sm no-print">
             <div class="animate-spin inline-block w-6 h-6 border-[3px] border-current border-t-transparent text-emerald-600 rounded-full mb-2" role="status"></div>
             <p id="loading-text">Sedang memuat data kas...</p>
         </div>
 
         <!-- RIWAYAT TABEL TRANSAKSI -->
-        <div id="tabel-container" class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hidden">
+        <div id="tabel-container" class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hidden no-print">
             <div class="px-6 py-4 bg-gray-50 border-b border-gray-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
                 <h3 class="font-bold text-gray-700">Riwayat Kas & Infaq</h3>
                 <div class="flex flex-wrap items-center gap-2 w-full md:w-auto">
@@ -192,6 +189,62 @@
                 <button id="btn-prev" onclick="ubahHalaman(-1)" class="px-3 py-1.5 bg-white border border-gray-200 text-gray-600 rounded-lg text-xs font-semibold hover:bg-gray-100 transition disabled:opacity-50 disabled:cursor-not-allowed">← Sebelumnya</button>
                 <span id="page-info" class="text-xs text-gray-500 font-medium">Halaman 1 dari 1</span>
                 <button id="btn-next" onclick="ubahHalaman(1)" class="px-3 py-1.5 bg-white border border-gray-200 text-gray-600 rounded-lg text-xs font-semibold hover:bg-gray-100 transition disabled:opacity-50 disabled:cursor-not-allowed">Selanjutnya →</button>
+            </div>
+        </div>
+
+        <!-- AREA LAPORAN RESMI KHUSUS CETAK (MUTASI REKENING / NERACA) -->
+        <div id="print-report-area" class="hidden bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
+            <!-- Kop Laporan Resmi -->
+            <div class="text-center border-b-2 border-emerald-700 pb-4 mb-6">
+                <h2 class="text-lg font-bold text-emerald-800 uppercase">Majelis Dzikir Dan Sholawat Ar Rijal</h2>
+                <p class="text-xs text-gray-600">Laporan Resmi Mutasi Kas & Infaq Keuangan</p>
+                <p id="print-periode-teks" class="text-xs font-semibold text-gray-700 mt-1">Periode: Semua Waktu</p>
+            </div>
+
+            <!-- Ringkasan Singkat -->
+            <div class="grid grid-cols-3 gap-3 mb-6 text-center text-xs bg-gray-50 p-3 rounded-xl border border-gray-100">
+                <div>
+                    <span class="text-gray-400 block uppercase">Total Masuk</span>
+                    <span id="print-total-masuk" class="font-bold text-blue-600 text-sm">Rp 0</span>
+                </div>
+                <div>
+                    <span class="text-gray-400 block uppercase">Total Keluar</span>
+                    <span id="print-total-keluar" class="font-bold text-red-500 text-sm">Rp 0</span>
+                </div>
+                <div>
+                    <span class="text-gray-400 block uppercase">Saldo Akhir</span>
+                    <span id="print-saldo-akhir" class="font-bold text-emerald-600 text-sm">Rp 0</span>
+                </div>
+            </div>
+
+            <!-- Tabel Mutasi -->
+            <table class="w-full text-left border-collapse border border-gray-300 text-xs mb-8">
+                <thead>
+                    <tr class="bg-gray-100 text-gray-700 uppercase">
+                        <th class="border border-gray-300 p-2 text-center w-10">No</th>
+                        <th class="border border-gray-300 p-2 w-24">Tanggal</th>
+                        <th class="border border-gray-300 p-2">Uraian / Kategori & Keterangan</th>
+                        <th class="border border-gray-300 p-2 text-right w-28">Masuk (+)</th>
+                        <th class="border border-gray-300 p-2 text-right w-28">Keluar (-)</th>
+                        <th class="border border-gray-300 p-2 text-right w-28">Saldo</th>
+                    </tr>
+                </thead>
+                <tbody id="print-mutasi-rows">
+                </tbody>
+            </table>
+
+            <!-- Tanda Tangan Pengurus / Sesepuh -->
+            <div class="flex justify-between items-center text-xs pt-4 page-break-inside-avoid">
+                <div class="text-center w-1/3">
+                    <p>Mengetahui,</p>
+                    <p class="font-bold mb-16">Dewan Pembina / Sesepuh</p>
+                    <p class="border-b border-gray-400 inline-block px-8">( ........................................ )</p>
+                </div>
+                <div class="text-center w-1/3">
+                    <p>Subang, <span id="print-tanggal-cetak"></span></p>
+                    <p class="font-bold mb-16">Bendahara Majelis</p>
+                    <p class="border-b border-gray-400 inline-block px-8 font-semibold">( Pengurus Ar Rijal )</p>
+                </div>
             </div>
         </div>
     </main>
@@ -277,7 +330,7 @@
                 
                 const rows = await response.json();
 
-                let totalMasuk = 0, totalKeluar = 0, validRecordsCount = 0;
+                let totalMasuk = 0, totalKeluar = 0;
                 let pemWa = '', pengWa = '', cMasuk = 0, cKeluar = 0;
                 allTransactions = [];
                 rekapBulanData = {};
@@ -326,12 +379,10 @@
 
                     if (jenis === 'Pemasukan') {
                         totalMasuk += nominal;
-                        validRecordsCount++;
                         rekapBulanData[thnStr][bulanKey].masuk += nominal;
                         if (cMasuk < 3) { pemWa += `* ${kategori}: Rp ${formatRupiah(nominal)}\n`; cMasuk++; }
                     } else if (jenis === 'Pengeluaran') {
                         totalKeluar += nominal;
-                        validRecordsCount++;
                         rekapBulanData[thnStr][bulanKey].keluar += nominal;
                         if (cKeluar < 3) { pengWa += `* ${kategori}: Rp ${formatRupiah(nominal)}\n`; cKeluar++; }
                     } else {
@@ -345,7 +396,7 @@
 
                     allTransactions.push({
                         dateObj: !isNaN(d.getTime()) ? d : new Date(),
-                        tanggal: tglTampil,
+                        tanggalStr: tglTampil,
                         jenis: jenis,
                         kategori: kategori,
                         keterangan: keterangan,
@@ -355,6 +406,9 @@
                         bulanNum: blnNum
                     });
                 }
+
+                // Urutkan transaksi kronologis (dari terlama ke terbaru) untuk perhitungan mutasi saldo yang benar
+                allTransactions.sort((a, b) => a.dateObj - b.dateObj);
 
                 populateYearDropdowns();
                 rekapIndex = 0;
@@ -490,12 +544,12 @@
             renderRekapBulanan();
         }
 
-        function filterAndRenderTable() {
+        function getFilteredTransactions() {
             const filterBulan = document.getElementById('filter-riwayat-bulan').value;
             const filterTahun = document.getElementById('filter-riwayat-tahun').value;
             const searchQuery = document.getElementById('input-search').value.toLowerCase().trim();
 
-            filteredTransactions = allTransactions.filter(item => {
+            return allTransactions.filter(item => {
                 let matchBulan = true;
                 let matchTahun = true;
                 let matchSearch = true;
@@ -509,21 +563,26 @@
                 if (searchQuery !== "") {
                     matchSearch = item.kategori.toLowerCase().includes(searchQuery) || 
                                   item.keterangan.toLowerCase().includes(searchQuery) ||
-                                  item.tanggal.toLowerCase().includes(searchQuery);
+                                  item.tanggalStr.toLowerCase().includes(searchQuery);
                 }
 
                 return matchBulan && matchTahun && matchSearch;
             });
+        }
 
+        function filterAndRenderTable() {
+            filteredTransactions = getFilteredTransactions();
             currentPage = 1;
             document.getElementById('jumlah-catatan').innerText = `${filteredTransactions.length} Catatan`;
             renderTable();
         }
 
         function renderTable() {
+            // Tampilan web dibalik (terbaru di atas) untuk kenyamanan pembacaan harian
+            const displayList = [...filteredTransactions].reverse();
             const startIndex = (currentPage - 1) * itemsPerPage;
             const endIndex = startIndex + itemsPerPage;
-            const paginatedItems = filteredTransactions.slice(startIndex, endIndex);
+            const paginatedItems = displayList.slice(startIndex, endIndex);
 
             let rowsHtml = '';
             paginatedItems.forEach(item => {
@@ -531,7 +590,7 @@
                 const nominalColor = item.jenis === 'Pemasukan' ? 'text-blue-600' : 'text-red-500';
 
                 rowsHtml += `<tr class="hover:bg-gray-50/50 transition">
-                    <td class="p-4 whitespace-nowrap text-gray-500">${item.tanggal}</td>
+                    <td class="p-4 whitespace-nowrap text-gray-500">${item.tanggalStr}</td>
                     <td class="p-4"><span class="font-semibold block text-gray-800">${item.kategori}</span><small class="text-gray-400 block max-w-xs md:max-w-md break-words">${item.keterangan}</small></td>
                     <td class="p-4 text-right font-bold whitespace-nowrap ${nominalColor}">${nominalStr}</td>
                     <td class="p-4 text-center whitespace-nowrap">${item.linkNota ? `<a href="${item.linkNota}" target="_blank" class="text-emerald-600 hover:text-emerald-800 text-xs font-semibold underline">Lihat Bukti</a>` : '<span class="text-gray-300">-</span>'}</td>
@@ -543,7 +602,8 @@
         }
 
         function renderPaginationControls() {
-            const totalPages = Math.ceil(filteredTransactions.length / itemsPerPage);
+            const displayList = [...filteredTransactions].reverse();
+            const totalPages = Math.ceil(displayList.length / itemsPerPage);
             const paginationContainer = document.getElementById('pagination-container');
             
             if (totalPages > 1) {
@@ -557,7 +617,8 @@
         }
 
         function ubahHalaman(direction) {
-            const totalPages = Math.ceil(filteredTransactions.length / itemsPerPage);
+            const displayList = [...filteredTransactions].reverse();
+            const totalPages = Math.ceil(displayList.length / itemsPerPage);
             currentPage += direction;
             if (currentPage < 1) currentPage = 1;
             if (currentPage > totalPages) currentPage = totalPages;
@@ -566,20 +627,102 @@
             document.getElementById('tabel-container').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         }
 
-        function exportExcel() {
-            if (filteredTransactions.length === 0) {
-                alert("Tidak ada data transaksi untuk diexport!");
+        function prepareReportData() {
+            const items = getFilteredTransactions(); // Sudah urut kronologis (terlama ke terbaru)
+            let runningSaldo = 0;
+            
+            // Hitung saldo awal sebelum filter (jika ada filter bulan/tahun)
+            // Untuk laporan mutasi mutlak, kita hitung saldo kumulatif dari awal transaksi
+            let mutasiRowsHtml = '';
+            let totalMasukReport = 0;
+            let totalKeluarReport = 0;
+            let currentSaldo = 0;
+
+            // Hitung ulang saldo berjalan dari seluruh allTransactions untuk akurasi mutasi
+            let runningTotal = 0;
+            const fullMutasiMap = new Map();
+            allTransactions.forEach(t => {
+                if (t.jenis === 'Pemasukan') runningTotal += t.nominal;
+                else runningTotal -= t.nominal;
+                fullMutasiMap.set(t, runningTotal);
+            });
+
+            let no = 1;
+            items.forEach(item => {
+                let masukVal = item.jenis === 'Pemasukan' ? item.nominal : 0;
+                let keluarVal = item.jenis === 'Pengeluaran' ? item.nominal : 0;
+                totalMasukReport += masukVal;
+                totalKeluarReport += keluarVal;
+                let saldoJalan = fullMutasiMap.get(item) || 0;
+
+                mutasiRowsHtml += `
+                    <tr>
+                        <td class="border border-gray-300 p-2 text-center">${no++}</td>
+                        <td class="border border-gray-300 p-2 whitespace-nowrap">${item.tanggalStr}</td>
+                        <td class="border border-gray-300 p-2"><strong>${item.kategori}</strong><br><span class="text-gray-500">${item.keterangan}</span></td>
+                        <td class="border border-gray-300 p-2 text-right text-blue-700">${masukVal ? '+ Rp ' + formatRupiah(masukVal) : '-'}</td>
+                        <td class="border border-gray-300 p-2 text-right text-red-600">${keluarVal ? '- Rp ' + formatRupiah(keluarVal) : '-'}</td>
+                        <td class="border border-gray-300 p-2 text-right font-bold">Rp ${formatRupiah(saldoJalan)}</td>
+                    </tr>
+                `;
+            });
+
+            const filterBulan = document.getElementById('filter-riwayat-bulan').value;
+            const filterTahun = document.getElementById('filter-riwayat-tahun').value;
+            const namaBulanList = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
+            
+            let periodeTeks = "Periode: Semua Waktu / Keseluruhan";
+            if (filterBulan && filterTahun) {
+                periodeTeks = `Periode: ${namaBulanList[filterBulan - 1]} ${filterTahun}`;
+            } else if (filterTahun) {
+                periodeTeks = `Periode Tahun: ${filterTahun}`;
+            } else if (filterBulan) {
+                periodeTeks = `Periode Bulan: ${namaBulanList[filterBulan - 1]}`;
+            }
+
+            document.getElementById('print-periode-teks').innerText = periodeTeks;
+            document.getElementById('print-total-masuk').innerText = `+ Rp ${formatRupiah(totalMasukReport)}`;
+            document.getElementById('print-total-keluar').innerText = `- Rp ${formatRupiah(totalKeluarReport)}`;
+            document.getElementById('print-saldo-akhir').innerText = `Rp ${formatRupiah(totalMasukReport - totalKeluarReport)}`;
+            document.getElementById('print-mutasi-rows').innerHTML = mutasiRowsHtml || '<tr><td colspan="6" class="border border-gray-300 p-4 text-center text-gray-500">Tidak ada data transaksi.</td></tr>';
+            document.getElementById('print-tanggal-cetak').innerText = new Date().toLocaleDateString('id-ID', {day: 'numeric', month: 'long', year: 'numeric'});
+        }
+
+        function cetakLaporanResmi() {
+            prepareReportData();
+            window.print();
+        }
+
+        function exportExcelMutasi() {
+            const items = getFilteredTransactions();
+            if (items.length === 0) {
+                alert("Tidak ada data untuk diexport!");
                 return;
             }
 
-            let csvContent = "data:text/csv;charset=utf-8,Tanggal,Jenis,Kategori,Keterangan,Nominal\r\n";
-            filteredTransactions.forEach(item => {
+            let runningTotal = 0;
+            const fullMutasiMap = new Map();
+            allTransactions.forEach(t => {
+                if (t.jenis === 'Pemasukan') runningTotal += t.nominal;
+                else runningTotal -= t.nominal;
+                fullMutasiMap.set(t, runningTotal);
+            });
+
+            let csvContent = "data:text/csv;charset=utf-8,No,Tanggal,Kategori,Keterangan,Pemasukan,Pengeluaran,Saldo\r\n";
+            let no = 1;
+            items.forEach(item => {
+                let masukVal = item.jenis === 'Pemasukan' ? item.nominal : 0;
+                let keluarVal = item.jenis === 'Pengeluaran' ? item.nominal : 0;
+                let saldoJalan = fullMutasiMap.get(item) || 0;
+
                 let row = [
-                    `"${item.tanggal}"`,
-                    `"${item.jenis}"`,
+                    no++,
+                    `"${item.tanggalStr}"`,
                     `"${item.kategori}"`,
                     `"${item.keterangan.replace(/"/g, '""')}"`,
-                    item.nominal
+                    masukVal,
+                    keluarVal,
+                    saldoJalan
                 ];
                 csvContent += row.join(",") + "\r\n";
             });
@@ -587,7 +730,7 @@
             let encodedUri = encodeURI(csvContent);
             let link = document.createElement("a");
             link.setAttribute("href", encodedUri);
-            link.setAttribute("download", `Laporan_Kas_ArRijal_${new Date().toISOString().substring(0,10)}.csv`);
+            link.setAttribute("download", `Mutasi_Kas_ArRijal_${new Date().toISOString().substring(0,10)}.csv`);
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
