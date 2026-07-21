@@ -194,14 +194,15 @@
 
         <!-- AREA LAPORAN RESMI KHUSUS CETAK (MUTASI REKENING / NERACA) -->
         <div id="print-report-area" class="hidden bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
-            <!-- Kop Laporan Resmi (Desain Kop Surat Klasik & Profesional) -->
-            <div class="relative flex items-center justify-center border-b-2 border-emerald-700 pb-4 mb-6 px-2">
-                <img src="https://i.postimg.cc/cHQN77zv/logo-arrijal.png" alt="Logo Majelis" class="absolute left-2 w-20 h-20 md:w-24 md:h-24 object-contain">
-                <div class="text-center px-14 md:px-20">
+            <!-- Kop Laporan Resmi (Desain Kop Surat Sejajar Profesional & Rapi) -->
+            <div class="flex items-center justify-between border-b-2 border-emerald-700 pb-4 mb-6 px-2">
+                <img src="https://i.postimg.cc/cHQN77zv/logo-arrijal.png" alt="Logo Majelis" class="w-16 h-16 md:w-20 md:h-20 object-contain">
+                <div class="text-center flex-1 px-2">
                     <h2 class="text-base md:text-lg font-bold text-emerald-800 uppercase tracking-wide">Majelis Dzikir Dan Sholawat Ar Rijal</h2>
                     <p class="text-xs text-gray-600">Laporan Resmi Mutasi Kas & Infaq Keuangan</p>
                     <p id="print-periode-teks" class="text-xs font-semibold text-gray-700 mt-1">Periode: Semua Waktu</p>
                 </div>
+                <div class="w-16 md:w-20"></div> <!-- Penyeimbang layout kanan agar teks pas di tengah -->
             </div>
 
             <!-- Ringkasan Singkat -->
@@ -429,7 +430,7 @@
                 let teksWa = `*LAPORAN KEUANGAN KAS & INFAQ*\n*MAJELIS DZIKIR DAN SHOLAWAT AR RIJAL*\n🗓️ Per Tanggal: ${new Date().toLocaleDateString('id-ID', {day:'numeric', month:'long', year:'numeric'})}\n\nAssalamu'alaikum Wr. Wb.\n\nBerikut ringkasan kas Majelis Dzikir Dan Sholawat Ar Rijal:\n\n💰 *SALDO KAS KESELURUHAN: Rp ${formatRupiah(saldo)}*\n\n`;
                 if (pemWa) teksWa += `📥 *Pemasukan Terbaru:*\n${pemWa}\n`;
                 if (pengWa) teksWa += `📤 *Pengeluaran Terbaru:*\n${pengWa}\n`;
-                teksWa += `🔍 *Detail Transaksi & Rekap Bulanan:*\nSilakan klik tautan resmi web laporan kas majelis kita:\n👉 ${window.location.href}\n\nTerima kasih atas infaq jemaah sekalian. Semoga menjadi amal jariyah.\n\nWassalamu'alaikum Wr. Wb.\n*~ Pengurus Majelis Dzikir Dan Sholawat Ar Rijal ~*`;
+                teksWa += `🔍 *Detail Transaksi & Rekap Bulanan:*\nSilakan klik tautan resmi web laporan kas majelis kita:\n👉 ${window.location.href}\n\n_*“Sedekah itu tidak akan mengurangi harta.” (HR. Muslim No. 2588)*_\n\nTerima kasih atas infaq jemaah sekalian. Semoga menjadi amal jariyah.\n\nWassalamu'alaikum Wr. Wb.\n*~ Pengurus Majelis Dzikir Dan Sholawat Ar Rijal ~*`;
                 
                 document.getElementById('btn-wa').href = `https://api.whatsapp.com/send?text=${encodeURIComponent(teksWa)}`;
             } catch (error) {
